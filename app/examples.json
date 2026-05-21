@@ -1,0 +1,97 @@
+{
+  "_info": {
+    "description": "Куровані приклади для інтерактивного тестування AuthorTrace",
+    "sources": "Приклади 1-8 — з відкритого корпусу HC3 (Hello-SimpleAI/HC3, CC-BY-SA 4.0); приклади 9-11 — авторські демонстраційні тексти.",
+    "language": "Англійська (модель навчалася на англомовному корпусі)"
+  },
+  "examples": [
+    {
+      "id": "human_1",
+      "category": "human",
+      "title": "Відповідь на Reddit (ELI5): чому соти шестикутні",
+      "expected": "Людина",
+      "description": "Розмовний стиль з характерним людським голосом, неформальні маркери (*packing order*, 'a neat thing to look up'), нерівномірна структура речень.",
+      "text": "They make the cells in circles. It just so happens that the closest *packing order* (this is a neat thing to look up) for circles is hexagons, so the walls deflect. If you get a chance to see a beehive with clear sides, you can see this. The cells on the edges are round where they aren't next to anything."
+    },
+    {
+      "id": "human_2",
+      "category": "human",
+      "title": "Особистий досвід (Reddit): розміри взуття",
+      "expected": "Людина",
+      "description": "Розповідь від першої особи, run-on речення, неформальні припущення ('I would guess that'), відсутність висновкової формули.",
+      "text": "I used to work at a shoe store and kids sizes follow the scale for men's size, women's sizes are on their own scale. I would guess that if the sizes were set on the same scale women's sizes would be really small almost kids size so they set up a new sizing system to distance from those sizes."
+    },
+    {
+      "id": "human_3",
+      "category": "human",
+      "title": "Особистий досвід серфера (Reddit ELI5)",
+      "expected": "Людина",
+      "description": "Розмовний стиль від першої особи, скорочення (can't, don't), особиста ремарка-каверзе ('Personal experience, may not be science') — типові ознаки людського неформального письма.",
+      "text": "For the record, surfboards are very buoyant. When I stand on it without riding a wave, I just can't stay on very long because it's less stable (since it's not moving), but I don't sink. Personal experience, may not be science."
+    },
+    {
+      "id": "human_4",
+      "category": "human",
+      "title": "Аргументація щодо викривачів",
+      "expected": "Людина",
+      "description": "Складна аргументація з рідкісними звороти ('strains credulity'), специфічна лексика, відсутність балансових 'It's important to note that'-фраз.",
+      "text": "In all these cases, falsifying the documents in question would have been beyond the capabilities of the individuals involved. You could posit a grand conspiracy where some large cabal of highly talented forgers collaborated to create a fake trove of documents that the leaker then 'leaked', but this strains credulity. More to the point, the organizations in question have not in general denied the authenticity of the documents being leaked."
+    },
+    {
+      "id": "ai_1",
+      "category": "ai",
+      "title": "Медична консультація (ChatGPT)",
+      "expected": "Штучний текст",
+      "description": "Класична структура ChatGPT: гіпотези → пояснення → рекомендація звернутися до лікаря; балансові звороти 'It's also possible that', 'It's important to'.",
+      "text": "It's possible that the lump in your ankle could be a side effect of chemotherapy or the medications you are taking for your breast cancer. Chemotherapy and other cancer treatments can sometimes cause swelling and fluid accumulation in the body. It's also possible that the lump could be something else entirely, such as a cyst or a benign tumor. I recommend that you speak with your oncologist about the lump."
+    },
+    {
+      "id": "ai_2",
+      "category": "ai",
+      "title": "Пояснення фізики горіння (ChatGPT)",
+      "expected": "Штучний текст",
+      "description": "Шаблонна повторювана структура 'You can/can't ... You can also', формульний початок 'Fire is a chemical reaction that happens when...'.",
+      "text": "Fire is a chemical reaction that happens when something burns. It needs three things to happen: fuel, oxygen, and heat. When these three things are together, a chemical reaction happens and fire is produced. You can't see fire itself, but you can see the light and heat that it gives off. You can't grab fire, but you can feel the heat that it gives off. You can also see the flames, which are made of hot gases."
+    },
+    {
+      "id": "ai_3",
+      "category": "ai",
+      "title": "Розміри взуття (ChatGPT)",
+      "expected": "Штучний текст",
+      "description": "Дидактична структура з прикладами ('Think about it this way: if you had...'), балансова парність ('On the other hand'), узагальнювальний абзац-висновок.",
+      "text": "Shoe sizes are based on the length and width of a person's foot. Men and women typically have different sizes and shapes of feet, so it makes sense that there would be different shoe sizes for each gender. Think about it this way: if you had a pair of shoes that were too small for your feet, they would be too tight and uncomfortable to wear. On the other hand, if you had a pair of shoes that were too big for your feet, they would be too loose and might even fall off."
+    },
+    {
+      "id": "ai_4",
+      "category": "ai",
+      "title": "Довіра до викривачів (ChatGPT)",
+      "expected": "Штучний текст",
+      "description": "Перелік прізвищ повними іменами, шаблонні зв'язки 'For example', обов'язкове застереження 'It's important to note that not all...'.",
+      "text": "Leakers like Edward Snowden, Julian Assange, and Daniel Ellsberg are seen as credible because they have provided a large amount of information that has been verified as true by multiple sources. When they disclose documents, they usually provide evidence to support the claims made in the documents. For example, Edward Snowden provided information about the US government's surveillance programs that was later confirmed by other sources. It's important to note that not all information disclosed by leakers is necessarily accurate or true."
+    },
+    {
+      "id": "edge_humanized",
+      "category": "edge",
+      "title": "«Олюднений» згенерований текст (тест стійкості)",
+      "expected": "Штучний текст (спроба обходу)",
+      "description": "Згенерована відповідь, до якої застосовано типові прийоми обходу: заміна формальних конекторів на розмовні, стягнення, дрібні помилки набору. Демонструє стійкість гібридного підходу проти суто перплексійних детекторів.",
+      "text": "shoe sizes are based on teh length adn width of a person's foot. men adn women typically have different sizes of feet, so it makes sense that there'd be different sizes for each gender. think about it this way: if you had shoes too small for your feet, they'd be too tight to wear. but if you had shoes too big, they'd be too loose adn might fall off. anyway, that's basically why."
+    },
+    {
+      "id": "edge_short_human",
+      "category": "edge",
+      "title": "Короткий неформальний коментар",
+      "expected": "Людина",
+      "description": "Дуже короткий текст з виразним людським голосом — складна задача для будь-якого детектора через малу кількість сигналу.",
+      "text": "Honestly the bus was late again and I just stood there freezing in the rain, watching two of them sail past going the wrong way. By the time mine finally showed up I had already given up and started walking. Typical Monday."
+    },
+    {
+      "id": "edge_formal_ai",
+      "category": "edge",
+      "title": "Класичний шаблонний відгук",
+      "expected": "Штучний текст",
+      "description": "Концентрований приклад стилю згенерованих відповідей: усі типові дискурсивні маркери в одному абзаці.",
+      "text": "There are several important factors to consider when evaluating this approach. First, it is essential to understand the underlying principles. Furthermore, one should carefully weigh the advantages and disadvantages. Moreover, the broader context plays a significant role. In conclusion, a balanced and well-informed strategy is generally recommended for achieving optimal results."
+    }
+  ]
+}
