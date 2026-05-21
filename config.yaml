@@ -1,0 +1,45 @@
+# ============================================================
+# AuthorTrace — конфігурація системи детекції штучних текстів
+# ============================================================
+
+seed: 42
+
+# --- Дані ---
+data:
+  dataset: HC3                 # джерело: Human ChatGPT Comparison Corpus
+  samples_per_class: 1000      # кількість текстів кожного класу
+  min_words: 40                # мінімальна довжина тексту (слів)
+  max_words: 400               # верхнє обрізання тексту
+  split: [0.70, 0.15, 0.15]    # train / val / test
+  cache_dir: data
+
+# --- Мовна модель для перплексійних та семантичних ознак ---
+language_model:
+  name: distilgpt2             # один трансформер на дві групи ознак
+  max_tokens: 220              # обрізання послідовності
+  window_size: 40              # вікно для оцінки кривини перплексії
+  top_k: 10                    # поріг для частки "очікуваних" токенів
+
+# --- Гібридна нейромережа фузії ознак ---
+model:
+  stylometric_hidden: 16
+  perplexity_hidden: 16
+  semantic_hidden: 64
+  fusion_hidden: 64
+  dropout: 0.35
+
+# --- Навчання ---
+train:
+  epochs: 120
+  batch_size: 64
+  lr: 0.0012
+  weight_decay: 0.0005
+  early_stopping_patience: 20
+
+# --- Шляхи ---
+paths:
+  features: data/features.npz
+  model: results/authortrace_model.pt
+  scaler: results/scaler.json
+  metrics: results/metrics.json
+  figures: results
