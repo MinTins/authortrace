@@ -6,6 +6,11 @@
      семантика) у підсумковий вердикт методом абляції гілок мережі.
   2. Посегментний аналіз — визначення речень, найімовірніше згенерованих
      штучно (часткова детекція).
+
+Для довгих текстів посегментний аналіз адаптивно укрупнює сегменти, щоб
+кількість фрагментів залишалась осяжною (інакше для тексту на тисячі
+слів довелось би прогнати модель сотні разів та показати нескінченну
+ленту блоків в інтерфейсі).
 """
 
 import re
@@ -14,6 +19,10 @@ import numpy as np
 import torch
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
+
+# Стеля кількості сегментів. Більше — модель буде дуже довго рахувати
+# на CPU, а користувач не зможе осмислено переглянути результат.
+_MAX_SEGMENTS = 40
 
 
 @torch.no_grad()
@@ -62,16 +71,36 @@ def split_sentences(text, min_words=6):
     return [p.strip() for p in parts if len(p.split()) >= min_words]
 
 
-def segment_analysis(detector, text, group_size=2):
+def _adaptive_group_size(n_sentences, base=2, cap=_MAX_SEGMENTS):
+    """
+    Підбирає кількість речень у сегменті так, щоб усього вийшло не більше
+    `cap` сегментів. Для короткого тексту повертає базовий розмір (2),
+    для довгого — пропорційно більший.
+    """
+    if n_sentences <= base * cap:
+        return base
+    # ceil(n_sentences / cap)
+    return max(base, (n_sentences + cap - 1) // cap)
+
+
+def segment_analysis(detector, text, group_size=None):
     """
     Аналізує текст посегментно: групи з кількох речень класифікуються
     окремо, що дозволяє локалізувати штучно згенеровані ділянки.
 
     :param detector: екземпляр AuthorTraceDetector
-    :param group_size: кількість речень в одному сегменті
+    :param group_size: кількість речень в одному сегменті. Якщо None —
+                       обирається адаптивно залежно від довжини тексту,
+                       щоб кількість сегментів не перевищувала ліміту.
     :return: список словників {текст сегмента, ймовірність штучності}
     """
     sentences = split_sentences(text)
+    if not sentences:
+        return []
+
+    if group_size is None:
+        group_size = _adaptive_group_size(len(sentences))
+
     segments = []
     for i in range(0, len(sentences), group_size):
         chunk = " ".join(sentences[i:i + group_size])
@@ -79,4 +108,6 @@ def segment_analysis(detector, text, group_size=2):
             continue
         prob = detector.predict_proba(chunk)
         segments.append({"text": chunk, "ai_probability": prob})
+        if len(segments) >= _MAX_SEGMENTS:
+            break
     return segments

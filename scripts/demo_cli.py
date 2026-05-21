@@ -4,6 +4,7 @@
 Приклади запуску:
     python scripts/demo_cli.py --text "Текст для перевірки..."
     python scripts/demo_cli.py --file document.txt
+    python scripts/demo_cli.py --file ukrainian.txt --translate
 """
 
 import argparse
@@ -15,6 +16,7 @@ import yaml
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.detector import AuthorTraceDetector
+from src.translate import detect_language
 
 
 def _bar(value, width=30):
@@ -26,6 +28,16 @@ def main():
     parser = argparse.ArgumentParser(description="AuthorTrace — детектор штучних текстів")
     parser.add_argument("--text", type=str, help="текст для аналізу")
     parser.add_argument("--file", type=str, help="файл з текстом для аналізу")
+    parser.add_argument(
+        "--translate", action="store_true",
+        help="перекладати неангломовний текст на англійську перед аналізом "
+             "(потрібен пакет deep-translator)",
+    )
+    parser.add_argument(
+        "--auto-translate", action="store_true",
+        help="автоматично визначити мову; перекладати, якщо текст не "
+             "англійською",
+    )
     args = parser.parse_args()
 
     if args.file:
@@ -35,6 +47,11 @@ def main():
     else:
         print("Введіть текст для аналізу (порожній рядок — завершення):")
         text = "\n".join(iter(input, ""))
+
+    # Виріши, чи робити переклад.
+    translate = args.translate
+    if args.auto_translate and not translate:
+        translate = detect_language(text) != "en"
 
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     cfg = yaml.safe_load(open(os.path.join(root, "config.yaml"), encoding="utf-8"))
@@ -49,11 +66,20 @@ def main():
         mcfg=cfg["model"],
     )
 
-    result = detector.analyze(text)
+    result = detector.analyze(text, translate=translate)
 
     print("\n" + "=" * 56)
     print("  РЕЗУЛЬТАТ АНАЛІЗУ")
     print("=" * 56)
+
+    tinfo = result.get("translation") or {}
+    if tinfo.get("translated"):
+        print(f"  Мова оригіналу:     {tinfo.get('source_language')}")
+        print(f"  Аналізовано:        переклад на англійську")
+    elif tinfo.get("source_language") and tinfo.get("source_language") != "en":
+        print(f"  Мова оригіналу:     {tinfo.get('source_language')} "
+              f"(БЕЗ перекладу — результат може бути ненадійним)")
+
     print(f"  Вердикт:            {result['verdict']}")
     print(f"  Імовірність ШІ:     {result['ai_probability'] * 100:5.1f}%  "
           f"[{_bar(result['ai_probability'])}]")
@@ -66,7 +92,7 @@ def main():
                  "semantic": "Семантика"}
         print(f"    {names[grp]:14s} {share:5.1f}%  [{_bar(share / 100)}]")
     print("-" * 56)
-    print("  Посегментний аналіз:")
+    print(f"  Посегментний аналіз ({len(result['segments'])} сегментів):")
     for i, seg in enumerate(result["segments"], 1):
         mark = "ШІ" if seg["ai_probability"] >= 0.5 else "Люд."
         preview = seg["text"][:54].replace("\n", " ")

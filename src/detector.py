@@ -3,10 +3,19 @@
 
 Поєднує вилучення ознак, нормалізацію, нейромережу фузії та засоби
 інтерпретації в єдиний інтерфейс для практичного використання.
+
+Підтримка неангломовних текстів
+-------------------------------
+Модель навчена на англомовних текстах, тож для текстів іншими мовами
+її поведінка не визначена. Щоб не зменшувати корисність системи для
+україномовних користувачів, інтерфейс `analyze`/`predict_proba` підтримує
+прозорий переклад через `src.translate.Translator`: при `translate=True`
+неангломовний вхід автоматично перекладається англійською, і вже над
+перекладом обчислюються ознаки. Користувач отримує як вердикт моделі,
+так і інформацію про те, що саме було проаналізовано.
 """
 
 import json
-import os
 
 import numpy as np
 import torch
@@ -44,6 +53,40 @@ class AuthorTraceDetector:
         self.model.load_state_dict(torch.load(model_path, map_location="cpu"))
         self.model.eval()
 
+        # Ліниво створюваний перекладач (вмикається лише на запит).
+        self._translator = None
+
+    # --- Допоміжні методи перекладу ----------------------------------------
+
+    def _get_translator(self):
+        """Створює перекладач один раз і кешує його."""
+        if self._translator is None:
+            from .translate import Translator
+            self._translator = Translator(target="en")
+        return self._translator
+
+    def _maybe_translate(self, text, translate):
+        """
+        Повертає кортеж (текст_для_аналізу, інфо_про_переклад).
+        Якщо переклад не виконувався — `інфо` має `translated=False`.
+        """
+        from .translate import detect_language
+
+        source_lang = detect_language(text)
+        info = {
+            "source_language": source_lang,
+            "translated": False,
+            "translated_text": None,
+        }
+        if not translate or source_lang == "en":
+            return text, info
+
+        translator = self._get_translator()
+        translated = translator.translate(text)
+        info["translated"] = True
+        info["translated_text"] = translated
+        return translated, info
+
     # --- Базові операції ----------------------------------------------------
 
     def _scaled_vector(self, text):
@@ -51,29 +94,48 @@ class AuthorTraceDetector:
         return self.scaler.transform(raw)
 
     @torch.no_grad()
-    def predict_proba(self, text):
-        """Повертає ймовірність штучного походження тексту (0..1)."""
-        x = self._scaled_vector(text)
+    def predict_proba(self, text, translate=False):
+        """
+        Повертає ймовірність штучного походження тексту (0..1).
+
+        :param translate: якщо True — неангломовний текст спершу буде
+                          перекладено на англійську.
+        """
+        analysis_text, _ = self._maybe_translate(text, translate)
+        x = self._scaled_vector(analysis_text)
         logit = self.model(torch.tensor(x, dtype=torch.float32).unsqueeze(0))
         return float(torch.sigmoid(logit).item())
 
-    def predict(self, text, threshold=0.5):
+    def predict(self, text, threshold=0.5, translate=False):
         """Повертає мітку: 'AI' або 'Human'."""
-        return "AI" if self.predict_proba(text) >= threshold else "Human"
+        return ("AI"
+                if self.predict_proba(text, translate=translate) >= threshold
+                else "Human")
 
     # --- Розширений аналіз --------------------------------------------------
 
-    def analyze(self, text, threshold=0.5):
+    def analyze(self, text, threshold=0.5, translate=False):
         """
-        Повний аналіз тексту: вердикт, ймовірність, внески груп ознак
-        та посегментна розбивка.
+        Повний аналіз тексту: вердикт, ймовірність, внески груп ознак,
+        посегментна розбивка.
+
+        :param translate: якщо True — для неангломовного тексту виконується
+                          переклад на англійську, і весь подальший аналіз
+                          (включно з посегментним) проводиться над
+                          перекладом. У результаті повертається поле
+                          `translation` з деталями.
         """
-        x = self._scaled_vector(text)
+        analysis_text, trans_info = self._maybe_translate(text, translate)
+
+        x = self._scaled_vector(analysis_text)
         logit = self.model(torch.tensor(x, dtype=torch.float32).unsqueeze(0))
         prob = float(torch.sigmoid(logit).item())
 
         contrib = branch_contributions(self.model, x)
-        segments = segment_analysis(self, text)
+        # Посегментний аналіз — над тим самим текстом, що йшов у глобальну
+        # модель, інакше сегменти й глобальний вердикт жили б у різних
+        # мовних світах і не корелювали.
+        segments = segment_analysis(self, analysis_text)
 
         return {
             "verdict": "AI" if prob >= threshold else "Human",
@@ -81,4 +143,5 @@ class AuthorTraceDetector:
             "confidence": abs(prob - 0.5) * 2.0,
             "feature_contributions": contrib["shares"],
             "segments": segments,
+            "translation": trans_info,
         }

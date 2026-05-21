@@ -6,6 +6,8 @@
     «Людина», «Штучний текст», крайові випадки);
   * аналіз довільного тексту з обчисленням імовірності штучного
     походження;
+  * автоматичне визначення мови та переклад україномовних текстів
+    на англійську (модель навчалася на англомовному корпусі);
   * візуалізація внеску кожної з трьох груп ознак у вердикт;
   * посегментний аналіз з підсвічуванням підозрілих фрагментів;
   * налаштування порогу класифікації в бічній панелі.
@@ -23,6 +25,7 @@ import streamlit as st
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from src.detector import AuthorTraceDetector
+from src.translate import detect_language
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 EXAMPLES_PATH = os.path.join(os.path.dirname(__file__), "examples.json")
@@ -32,6 +35,8 @@ CATEGORY_LABELS = {
     "ai": "Штучний текст",
     "edge": "Крайові випадки",
 }
+
+LANG_NAMES = {"uk": "українська", "en": "англійська"}
 
 
 # --- Завантаження ресурсів -------------------------------------------------
@@ -65,7 +70,7 @@ def load_metrics():
 
 # --- Інтерфейсні допоміжні функції -----------------------------------------
 
-def render_sidebar(metrics, threshold):
+def render_sidebar(metrics, threshold, lang_mode):
     with st.sidebar:
         st.markdown("### Налаштування")
         threshold = st.slider(
@@ -73,6 +78,24 @@ def render_sidebar(metrics, threshold):
             min_value=0.10, max_value=0.90, value=threshold, step=0.05,
             help="Імовірність штучного походження, починаючи з якої текст "
                  "позначається як 'AI'. Стандартне значення — 0.5.",
+        )
+
+        st.markdown("#### Мова вхідного тексту")
+        lang_mode = st.radio(
+            "Як обробляти текст",
+            options=["auto", "en", "translate"],
+            format_func=lambda k: {
+                "auto": "Авто (визначити мову)",
+                "en": "Англійська (без перекладу)",
+                "translate": "Українська → переклад → аналіз",
+            }[k],
+            index=["auto", "en", "translate"].index(lang_mode),
+            help=(
+                "Модель навчалася на англомовних текстах. У режимі «Авто» "
+                "система визначає мову автоматично та перекладає "
+                "україномовні тексти. Переклад виконується безкоштовно "
+                "(deep-translator + Google Translate)."
+            ),
         )
 
         st.markdown("---")
@@ -98,9 +121,11 @@ def render_sidebar(metrics, threshold):
 
         st.markdown("---")
         st.caption("Модель навчалася на англомовному корпусі HC3. "
-                   "Тексти іншими мовами оброблятимуться, але якість "
-                   "може бути нижчою.")
-    return threshold
+                   "Україномовні тексти автоматично перекладаються "
+                   "англійською — результати лишаються інтерпретованими, "
+                   "але можуть бути менш точними, ніж для оригінально "
+                   "англомовних текстів.")
+    return threshold, lang_mode
 
 
 def render_example_gallery(examples, active_filter):
@@ -131,6 +156,26 @@ def render_example_gallery(examples, active_filter):
                     st.rerun()
 
 
+def render_translation_note(trans_info):
+    """Показує плашку про виконаний переклад / визначену мову."""
+    src = trans_info.get("source_language", "en")
+    if trans_info.get("translated"):
+        st.info(
+            f"Виявлено мову: **{LANG_NAMES.get(src, src)}**. "
+            f"Текст перекладено англійською для аналізу. "
+            f"Усі ймовірності та сегменти нижче стосуються перекладу."
+        )
+        with st.expander("Показати переклад, який було проаналізовано"):
+            st.code(trans_info["translated_text"], language=None)
+    elif src != "en":
+        st.warning(
+            f"Виявлено мову **{LANG_NAMES.get(src, src)}**, але переклад "
+            f"вимкнено. Результат може бути ненадійним — модель навчалася "
+            f"на англомовних текстах. Увімкніть «Українська → переклад» "
+            f"у бічній панелі."
+        )
+
+
 def render_results(result, threshold):
     """Виводить результат аналізу з візуалізацією внесків і сегментів."""
     prob = result["ai_probability"]
@@ -139,6 +184,9 @@ def render_results(result, threshold):
     # Великий блок вердикту.
     verdict_label = "Штучно згенерований текст" if is_ai else "Текст, написаний людиною"
     st.markdown("### Результат аналізу")
+
+    render_translation_note(result.get("translation") or {})
+
     box_color = "#fbe9e7" if is_ai else "#e8f5e9"
     border_color = "#c62828" if is_ai else "#2e7d32"
     st.markdown(
@@ -177,7 +225,8 @@ def render_results(result, threshold):
     # Посегментний аналіз.
     st.markdown("#### Посегментний аналіз")
     st.caption("Кожен фрагмент тексту класифіковано окремо. Це дозволяє "
-               "виявити частково згенеровані тексти.")
+               "виявити частково згенеровані тексти. Для дуже довгих "
+               "текстів сегменти укрупнюються адаптивно.")
     if not result["segments"]:
         st.info("Текст занадто короткий для посегментного аналізу.")
     for i, seg in enumerate(result["segments"], 1):
@@ -195,6 +244,20 @@ def render_results(result, threshold):
             f"</div>", unsafe_allow_html=True)
 
 
+def _resolve_translate_flag(text, lang_mode):
+    """
+    Перетворює налаштування мови з бічної панелі на булевий прапор `translate`,
+    що очікує детектор. Повертає (translate_flag, detected_language).
+    """
+    detected = detect_language(text) if text else "en"
+    if lang_mode == "translate":
+        return True, detected
+    if lang_mode == "en":
+        return False, detected
+    # auto
+    return (detected != "en"), detected
+
+
 # --- Головна сторінка ------------------------------------------------------
 
 def main():
@@ -209,16 +272,22 @@ def main():
         st.session_state["loaded_id"] = None
     if "threshold" not in st.session_state:
         st.session_state["threshold"] = 0.5
+    if "lang_mode" not in st.session_state:
+        st.session_state["lang_mode"] = "auto"
 
     metrics = load_metrics()
-    threshold = render_sidebar(metrics, st.session_state["threshold"])
+    threshold, lang_mode = render_sidebar(
+        metrics, st.session_state["threshold"], st.session_state["lang_mode"]
+    )
     st.session_state["threshold"] = threshold
+    st.session_state["lang_mode"] = lang_mode
 
     st.title("AuthorTrace")
     st.markdown(
         "Гібридна нейромережева система детекції штучно згенерованих текстів. "
         "Поєднує стилометричні, перплексійні та семантичні ознаки в одній "
-        "моделі та пояснює власне рішення."
+        "моделі та пояснює власне рішення. Підтримує україномовні тексти "
+        "через автоматичний переклад."
     )
 
     examples = load_examples()["examples"]
@@ -249,8 +318,10 @@ def main():
 
     with tab_custom:
         st.markdown(
-            "Вставте власний текст англійською мовою. Для надійної "
-            "класифікації бажано не менше 50 слів."
+            "Вставте власний текст. Англійську модель обробляє безпосередньо; "
+            "україномовний текст буде перекладено англійською (налаштовується "
+            "в бічній панелі). Для надійної класифікації бажано не менше "
+            "50 слів."
         )
         st.session_state["input_text"] = st.text_area(
             "Текст для аналізу",
@@ -288,11 +359,28 @@ def main():
                 "(потрібно щонайменше 10 слів)."
             )
         else:
-            with st.spinner("Виконується аналіз... "
-                            "(перший запуск може зайняти 10-15 секунд "
-                            "через ініціалізацію мовної моделі)"):
+            translate_flag, detected = _resolve_translate_flag(text, lang_mode)
+            spinner_msg = "Виконується аналіз..."
+            if translate_flag:
+                spinner_msg = ("Перекладаю текст англійською та виконую "
+                               "аналіз... (для довгих текстів може зайняти "
+                               "до хвилини)")
+            with st.spinner(spinner_msg):
                 detector, _ = load_detector()
-                result = detector.analyze(text, threshold=threshold)
+                try:
+                    result = detector.analyze(
+                        text, threshold=threshold, translate=translate_flag
+                    )
+                except RuntimeError as e:
+                    # Найімовірніше — не встановлено deep-translator
+                    # або немає інтернету.
+                    st.error(
+                        f"Не вдалося виконати переклад: {e}\n\n"
+                        f"Спробуйте перемкнути режим мови на «Англійська» "
+                        f"в бічній панелі та проаналізувати оригінальний "
+                        f"текст без перекладу."
+                    )
+                    return
             render_results(result, threshold)
 
 

@@ -6,6 +6,19 @@
 текст має нижчу перплексію та меншу «вибуховість» (burstiness) — розкид
 несподіваності токенів. Окрім класичних метрик, обчислюється авторська
 ознака — кривина перплексії за вікнами тексту.
+
+Підтримка довгих текстів
+------------------------
+Контекст `distilgpt2` обмежено 1024 токенами, а параметр `max_tokens` (220
+за замовчуванням) задає розмір вікна, з яким працює модель. Якщо текст
+довший за вікно, ми не обрізаємо його, а ділимо на послідовні непересічні
+фрагменти й рахуємо токен-рівневі статистики для кожного. Потім масиви
+лог-імовірностей та рангів конкатенуються, тож усі агреговані метрики
+(середня лог-імовірність, перплексія, burstiness, частки top-1/top-k)
+обчислюються над усім текстом і зберігають свій статистичний зміст.
+Семантичний ембединг — це середнє за прихованими станами всіх токенів,
+тож для довгих текстів він теж усереднюється за всіма фрагментами
+(зважено за кількістю токенів).
 """
 
 import numpy as np
@@ -36,11 +49,14 @@ class PerplexityExtractor:
         self.window_size = window_size
         self.top_k = top_k
 
+    # --- Внутрішні допоміжні методи ----------------------------------------
+
     @torch.no_grad()
     def _token_stats(self, input_ids):
         """
         Повертає масиви токен-рівневих лог-імовірностей та рангів істинних
-        токенів, а також прихований стан останнього шару.
+        токенів, а також прихований стан останнього шару для одного фрагмента
+        (input_ids очікується формою (1, seq)).
         """
         out = self.model(input_ids, output_hidden_states=True)
         logits = out.logits[0]                       # (seq, vocab)
@@ -57,26 +73,69 @@ class PerplexityExtractor:
 
         return true_lp.cpu().numpy(), ranks.cpu().numpy(), hidden
 
+    def _effective_chunk_size(self):
+        """Розмір вікна для одного прогону моделі (обмежено контекстом LM)."""
+        # У distilgpt2 — 1024 позиції. Беремо мінімум із max_tokens та
+        # реальним обмеженням моделі (зменшеним на 1 для безпеки).
+        model_max = getattr(self.model.config, "n_positions", 1024) or 1024
+        return max(8, min(self.max_tokens, model_max - 1))
+
+    def _zero_result(self, return_hidden):
+        feats = np.zeros(N_PERPLEXITY, dtype=np.float32)
+        if return_hidden:
+            dim = self.model.config.hidden_size
+            return feats, np.zeros(dim, dtype=np.float32)
+        return feats
+
+    # --- Основна точка входу ----------------------------------------------
+
     def extract(self, text, return_hidden=False):
         """
-        Обчислює вектор перплексійних ознак для тексту.
+        Обчислює вектор перплексійних ознак для тексту довільної довжини.
+
+        Якщо текст коротший за вікно — обчислення в один прогін (як раніше).
+        Якщо довший — текст ділиться на непересічні фрагменти, для кожного
+        обчислюються токен-рівневі статистики, а потім усе агрегується в
+        статистично коректний спосіб над повним текстом.
 
         :param return_hidden: якщо True — додатково повертає семантичний
                               ембединг (середнє за прихованим станом)
         """
-        enc = self.tokenizer(
-            text, return_tensors="pt", truncation=True, max_length=self.max_tokens
-        )
+        # Токенізуємо БЕЗ обрізання — далі самі вирішимо, як ділити.
+        enc = self.tokenizer(text, return_tensors="pt", truncation=False)
         input_ids = enc["input_ids"]
+        total_len = int(input_ids.shape[1])
 
-        if input_ids.shape[1] < 4:
-            feats = np.zeros(N_PERPLEXITY, dtype=np.float32)
+        if total_len < 4:
+            return self._zero_result(return_hidden)
+
+        chunk_size = self._effective_chunk_size()
+
+        # Збираємо токен-рівневі статистики з усіх фрагментів.
+        log_probs_chunks = []
+        ranks_chunks = []
+        hidden_means = []   # (вектор, скільки токенів дав)
+        for start in range(0, total_len, chunk_size):
+            end = min(start + chunk_size, total_len)
+            chunk_ids = input_ids[:, start:end]
+            if chunk_ids.shape[1] < 4:
+                # Хвостовий фрагмент занадто короткий — пропускаємо.
+                continue
+            lp, rk, hidden = self._token_stats(chunk_ids)
+            log_probs_chunks.append(lp)
+            ranks_chunks.append(rk)
             if return_hidden:
-                dim = self.model.config.hidden_size
-                return feats, np.zeros(dim, dtype=np.float32)
-            return feats
+                hidden_means.append(
+                    (hidden.mean(dim=0).cpu().numpy(), int(hidden.shape[0]))
+                )
 
-        true_lp, ranks, hidden = self._token_stats(input_ids)
+        if not log_probs_chunks:
+            return self._zero_result(return_hidden)
+
+        # Конкатенація токен-рівневих статистик дає коректні значення для
+        # всіх метрик, що є середніми / квантилями / std над токенами.
+        true_lp = np.concatenate(log_probs_chunks)
+        ranks = np.concatenate(ranks_chunks)
 
         mean_lp = float(np.mean(true_lp))
         perplexity = float(np.exp(-mean_lp))
@@ -84,6 +143,8 @@ class PerplexityExtractor:
         lp_range = float(np.max(true_lp) - np.min(true_lp))
 
         # Авторська ознака — кривина перплексії за непересічними вікнами.
+        # Тепер вона рахується ПО ВСЬОМУ тексту, а не лише по першому
+        # фрагменту, тож для довгих текстів є інформативнішою.
         window_ppls = []
         for i in range(0, len(true_lp), self.window_size):
             chunk = true_lp[i:i + self.window_size]
@@ -107,6 +168,11 @@ class PerplexityExtractor:
         ], dtype=np.float32)
 
         if return_hidden:
-            semantic = hidden.mean(dim=0).cpu().numpy().astype(np.float32)
+            # Зважене усереднення прихованих станів по фрагментах
+            # (вага пропорційна кількості токенів у фрагменті).
+            vecs = np.stack([v for v, _ in hidden_means])
+            weights = np.array([w for _, w in hidden_means], dtype=np.float32)
+            semantic = np.average(vecs, axis=0, weights=weights).astype(np.float32)
             return feats, semantic
+
         return feats
