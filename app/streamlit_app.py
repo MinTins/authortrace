@@ -9,13 +9,15 @@
   * автоматичне визначення мови та переклад україномовних текстів
     на англійську (модель навчалася на англомовному корпусі);
   * візуалізація внеску кожної з трьох груп ознак у вердикт;
-  * посегментний аналіз з підсвічуванням підозрілих фрагментів;
+  * посегментний аналіз з інлайн-виділенням підозрілих фрагментів у тексті
+    та кольоровим градієнтом ймовірності;
   * налаштування порогу класифікації в бічній панелі.
 
 Запуск з кореня репозиторію:
     streamlit run app/streamlit_app.py
 """
 
+import html
 import json
 import os
 import sys
@@ -222,26 +224,116 @@ def render_results(result, threshold):
         col_a.markdown(f"**{names[grp]}**")
         col_b.progress(share / 100.0, text=f"{share:.1f}%")
 
-    # Посегментний аналіз.
+    # Посегментний аналіз: підсвічування підозрілих фрагментів у тексті.
     st.markdown("#### Посегментний аналіз")
-    st.caption("Кожен фрагмент тексту класифіковано окремо. Це дозволяє "
-               "виявити частково згенеровані тексти. Для дуже довгих "
-               "текстів сегменти укрупнюються адаптивно.")
-    if not result["segments"]:
+    st.caption("Кожен фрагмент тексту класифіковано окремо. Колір та "
+               "числовий бейдж показують ймовірність штучного походження "
+               "саме цього фрагмента. Для дуже довгих текстів сегменти "
+               "укрупнюються адаптивно.")
+    render_segment_highlights(result["segments"], threshold)
+
+
+def _segment_palette(prob, threshold):
+    """
+    Повертає кольори для виділення сегмента залежно від його ймовірності.
+
+    Гладкий HSL-градієнт зелений → жовтий → червоний від 0 до 1; межа
+    переходу прив'язана до порогу класифікації, щоб візуальний акцент
+    збігався з логікою вердикту.
+    """
+    # Прив'язуємо «нейтральну точку» (жовтий) до порогу — нижче порогу
+    # перевага зелених відтінків, вище — червоних.
+    if prob <= threshold:
+        # Лінійна інтерполяція 120° (зелений) -> 60° (жовтий)
+        ratio = prob / threshold if threshold > 0 else 0.0
+        hue = 120 - ratio * 60
+    else:
+        # Лінійна інтерполяція 60° (жовтий) -> 0° (червоний)
+        ratio = (prob - threshold) / max(1.0 - threshold, 1e-6)
+        hue = 60 - ratio * 60
+
+    # Світлий фон для читабельності, насиченіший бейдж.
+    bg = f"hsl({hue:.0f}, 70%, 88%)"
+    badge_bg = f"hsl({hue:.0f}, 60%, 38%)"
+    border = f"hsl({hue:.0f}, 55%, 55%)"
+    return bg, badge_bg, border
+
+
+def render_segment_highlights(segments, threshold):
+    """Виводить текст з кольоровим виділенням сегментів та бейджами P(ШІ)."""
+    if not segments:
         st.info("Текст занадто короткий для посегментного аналізу.")
-    for i, seg in enumerate(result["segments"], 1):
-        seg_prob = seg["ai_probability"]
-        seg_is_ai = seg_prob >= threshold
-        tag_color = "#c62828" if seg_is_ai else "#2e7d32"
-        tag_text = "ШІ" if seg_is_ai else "Людина"
-        st.markdown(
-            f"<div style='border-left:3px solid {tag_color}; padding:8px 12px; "
-            f"margin:6px 0; background:#fafafa;'>"
-            f"<span style='display:inline-block; min-width:60px; "
-            f"font-weight:600; color:{tag_color};'>[{i}] {tag_text}</span>"
-            f"<span style='color:#666;'>P(ШІ) = {seg_prob:.3f}</span><br>"
-            f"<span style='font-size:0.92em;'>{seg['text']}</span>"
-            f"</div>", unsafe_allow_html=True)
+        return
+
+    # Легенда градієнта.
+    legend_steps = [0.0, 0.25, 0.5, 0.75, 1.0]
+    legend_html = "".join(
+        f"<span style='background:{_segment_palette(p, threshold)[0]}; "
+        f"padding:3px 10px; margin:0 1px; font-size:0.78em; color:#333;'>"
+        f"{p:.2f}</span>"
+        for p in legend_steps
+    )
+    st.markdown(
+        "<div style='font-size:0.82em; color:#555; margin:6px 0 4px;'>"
+        "Шкала ймовірності штучного походження сегмента:"
+        f"</div><div style='margin-bottom:10px;'>{legend_html} "
+        f"<span style='font-size:0.78em; color:#777; margin-left:8px;'>"
+        f"(поріг: {threshold:.2f})</span></div>",
+        unsafe_allow_html=True,
+    )
+
+    # Текст з виділеними сегментами.
+    pieces = []
+    n_suspicious = 0
+    for i, seg in enumerate(segments, 1):
+        prob = seg["ai_probability"]
+        bg, badge_bg, border = _segment_palette(prob, threshold)
+        is_suspicious = prob >= threshold
+        if is_suspicious:
+            n_suspicious += 1
+        text_safe = html.escape(seg["text"])
+        badge = (
+            f"<span style='background:{badge_bg}; color:white; "
+            f"padding:1px 6px; border-radius:3px; margin-right:6px; "
+            f"font-size:0.74em; font-weight:600; vertical-align:middle; "
+            f"white-space:nowrap;' "
+            f"title='Сегмент {i}: P(ШІ) = {prob:.3f}'>"
+            f"{prob:.2f}</span>"
+        )
+        piece = (
+            f"<span style='background:{bg}; padding:2px 4px; margin:2px 1px; "
+            f"border-radius:3px; box-decoration-break:clone; "
+            f"-webkit-box-decoration-break:clone;'>"
+            f"{badge}{text_safe}</span>"
+        )
+        pieces.append(piece)
+
+    container = (
+        "<div style='line-height:2.0; padding:14px 16px; background:#fcfcfc; "
+        "border:1px solid #e5e5e5; border-radius:6px; font-size:0.95em;'>"
+        + " ".join(pieces) +
+        "</div>"
+    )
+    st.markdown(container, unsafe_allow_html=True)
+
+    # Зведення.
+    n_total = len(segments)
+    st.caption(
+        f"Усього сегментів: **{n_total}**, "
+        f"підозрілих (P ≥ {threshold:.2f}): **{n_suspicious}** "
+        f"({n_suspicious / n_total * 100:.0f}%)."
+    )
+
+    # Числові деталі — за бажанням, у згорнутому блоці.
+    with st.expander("Показати числові деталі по сегментах"):
+        for i, seg in enumerate(segments, 1):
+            mark = "ШІ" if seg["ai_probability"] >= threshold else "Людина"
+            preview = seg["text"][:120] + ("..." if len(seg["text"]) > 120 else "")
+            st.markdown(
+                f"**[{i}]** `P(ШІ)={seg['ai_probability']:.3f}` — *{mark}*  \n"
+                f"<span style='color:#555; font-size:0.9em;'>{html.escape(preview)}</span>",
+                unsafe_allow_html=True,
+            )
 
 
 def _resolve_translate_flag(text, lang_mode):
