@@ -8,13 +8,6 @@
 
 Одна мовна модель (distilgpt2) обслуговує і перплексійну, і семантичну
 групи, що робить систему легкою та придатною до запуску на CPU.
-
-Примітка щодо імпортів: використовуються прямі класи `GPT2LMHeadModel`
-та `GPT2TokenizerFast` замість `AutoModelForCausalLM` / `AutoTokenizer`.
-У нових версіях `transformers` Auto-класи ліниво підвантажують модулі
-обробки зображень, що породжує помилку `ModuleNotFoundError: No module
-named 'torchvision'` навіть тоді, коли зображення нікому не потрібні.
-Прямі імпорти обходять цей шлях.
 """
 
 import numpy as np
@@ -30,7 +23,6 @@ class FeatureExtractor:
 
     def __init__(self, lm_name="distilgpt2", max_tokens=220,
                  window_size=40, top_k=10):
-        # Прямі класи замість Auto-* — щоб не тягнути torchvision.
         self.tokenizer = GPT2TokenizerFast.from_pretrained(lm_name)
         self.model = GPT2LMHeadModel.from_pretrained(lm_name)
         self.model.eval()
