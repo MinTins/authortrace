@@ -114,6 +114,71 @@ def test_adaptive_group_size_returns_at_least_base():
     assert _adaptive_group_size(1) >= 2
 
 
+# --- Агрегація фінального вердикту -----------------------------------------
+
+from src.explain import aggregate_verdict
+
+
+def _seg_list(probs):
+    return [{"ai_probability": p} for p in probs]
+
+
+def test_aggregate_short_falls_back_to_global():
+    """Якщо сегментів обмаль — повертається саме глобальна оцінка."""
+    assert aggregate_verdict(0.3, _seg_list([0.9, 0.9]), 0.5) == 0.3
+    assert aggregate_verdict(0.85, [], 0.5) == 0.85
+
+
+def test_aggregate_majority_ai_overrides_global_human():
+    """Якщо більшість сегментів — ШІ, фінальний результат теж ШІ."""
+    # 9 сегментів з ШІ, 6 з людиною; global вважає текст людським
+    probs = [0.95] * 9 + [0.05] * 6
+    final = aggregate_verdict(0.1, _seg_list(probs), 0.5)
+    assert final >= 0.5, f"Очікувалось ≥0.5, отримано {final}"
+
+
+def test_aggregate_majority_human_keeps_human():
+    """Якщо більшість сегментів людські — вердикт лишається людським."""
+    probs = [0.05] * 8 + [0.95] * 2
+    final = aggregate_verdict(0.1, _seg_list(probs), 0.5)
+    assert final < 0.5, f"Очікувалось <0.5, отримано {final}"
+
+
+def test_aggregate_significant_partial_ai_triggers_ai():
+    """30–50% штучних сегментів — мають зміщувати вердикт у бік ШІ."""
+    # 4 з 10 сегментів — ШІ (40%)
+    probs = [0.95] * 4 + [0.05] * 6
+    final = aggregate_verdict(0.1, _seg_list(probs), 0.5)
+    assert final >= 0.5, f"Очікувалось ≥0.5, отримано {final}"
+
+
+def test_aggregate_isolated_ai_segment_not_flagged():
+    """Один штучний сегмент серед людських — не призводить до ШІ-вердикту."""
+    probs = [0.95] + [0.05] * 9   # 10%
+    final = aggregate_verdict(0.05, _seg_list(probs), 0.5)
+    assert final < 0.5
+
+
+def test_aggregate_clipped_to_unit_interval():
+    """Фінальне значення завжди в [0, 1]."""
+    final = aggregate_verdict(1.5, _seg_list([0.99] * 10), 0.5)
+    assert 0.0 <= final <= 1.0
+
+
+# --- Поділ для перекладу: дуже довгі однопараграфні тексти ----------------
+
+def test_chunking_handles_single_huge_paragraph_no_newlines():
+    """
+    Типовий випадок: курсова, експортована у TXT без перенесень рядка
+    між абзацами. Розбиття все одно має дати чанки в межах ліміту.
+    """
+    sentence = "Це довгий приклад речення, написаного у курсовій роботі. "
+    big = sentence * 200  # ≈ 11 000 символів, ОДИН блок без \\n
+    chunks = _split_for_translation(big, max_len=3500)
+    assert all(len(c) <= 3500 for c in chunks)
+    assert len(chunks) >= 3
+
+
 def _run_all():
     tests = [v for k, v in globals().items() if k.startswith("test_")]
     passed = 0

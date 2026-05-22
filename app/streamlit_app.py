@@ -17,6 +17,24 @@
     streamlit run app/streamlit_app.py
 """
 
+# Заглушення інфо-повідомлень бекендів, які підтягуються транзитивно
+# (TensorFlow / Keras через `deep-translator`, HuggingFace tokenizer
+# тощо). Має відбуватися ПЕРЕД імпортом будь-яких ML-бібліотек.
+import os as _os
+import warnings as _warnings
+
+for _name, _value in {
+    "TF_CPP_MIN_LOG_LEVEL": "3",
+    "TF_ENABLE_ONEDNN_OPTS": "0",
+    "TRANSFORMERS_VERBOSITY": "error",
+    "TOKENIZERS_PARALLELISM": "false",
+}.items():
+    _os.environ.setdefault(_name, _value)
+
+_warnings.filterwarnings("ignore", category=FutureWarning)
+_warnings.filterwarnings("ignore", category=DeprecationWarning)
+_warnings.filterwarnings("ignore", category=UserWarning)
+
 import html
 import json
 import os
@@ -202,12 +220,17 @@ def render_results(result, threshold):
     st.write("")
 
     # Метрики ймовірності.
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Імовірність ШІ", f"{prob * 100:.1f}%")
-    c2.metric("Впевненість",
+    global_prob = result.get("global_ai_probability", prob)
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Імовірність ШІ", f"{prob * 100:.1f}%",
+              help="Фінальна ймовірність, що враховує і глобальний прогон "
+                   "моделі, і розподіл імовірностей по сегментах.")
+    c2.metric("Глобальна P(ШІ)", f"{global_prob * 100:.1f}%",
+              help="Результат одиничного прогону моделі на повному тексті.")
+    c3.metric("Впевненість",
               f"{result['confidence'] * 100:.1f}%",
-              help="Близькість імовірності до однієї з крайніх точок (0 або 1).")
-    c3.metric("Поріг", f"{threshold:.2f}")
+              help="Близькість фінальної ймовірності до однієї з крайніх точок.")
+    c4.metric("Поріг", f"{threshold:.2f}")
     st.progress(prob)
 
     # Внесок груп ознак.
@@ -265,44 +288,59 @@ def render_segment_highlights(segments, threshold):
         st.info("Текст занадто короткий для посегментного аналізу.")
         return
 
+    # Стиль фіксованого темного тексту на пастельному фоні — щоб
+    # виділення лишалось читабельним і у світлій, і в темній темах
+    # Streamlit (де успадковуваний колір тексту білий і зливався б
+    # з ясно-кольоровим фоном).
+    text_color = "#1a1a1a"
+
     # Легенда градієнта.
     legend_steps = [0.0, 0.25, 0.5, 0.75, 1.0]
     legend_html = "".join(
         f"<span style='background:{_segment_palette(p, threshold)[0]}; "
-        f"padding:3px 10px; margin:0 1px; font-size:0.78em; color:#333;'>"
+        f"color:{text_color}; padding:3px 10px; margin:0 1px; "
+        f"font-size:0.78em;'>"
         f"{p:.2f}</span>"
         for p in legend_steps
     )
     st.markdown(
-        "<div style='font-size:0.82em; color:#555; margin:6px 0 4px;'>"
+        "<div style='font-size:0.82em; color:#999; margin:6px 0 4px;'>"
         "Шкала ймовірності штучного походження сегмента:"
         f"</div><div style='margin-bottom:10px;'>{legend_html} "
-        f"<span style='font-size:0.78em; color:#777; margin-left:8px;'>"
+        f"<span style='font-size:0.78em; color:#999; margin-left:8px;'>"
         f"(поріг: {threshold:.2f})</span></div>",
         unsafe_allow_html=True,
     )
+
+    has_translation = any(seg.get("translated_text") for seg in segments)
 
     # Текст з виділеними сегментами.
     pieces = []
     n_suspicious = 0
     for i, seg in enumerate(segments, 1):
         prob = seg["ai_probability"]
-        bg, badge_bg, border = _segment_palette(prob, threshold)
+        bg, badge_bg, _ = _segment_palette(prob, threshold)
         is_suspicious = prob >= threshold
         if is_suspicious:
             n_suspicious += 1
         text_safe = html.escape(seg["text"])
+        # Tooltip — повна точність + (за наявності) англійський переклад,
+        # на якому реально працювала модель.
+        tooltip = f"Сегмент {i}: P(ШІ) = {prob:.3f}"
+        if seg.get("translated_text"):
+            tooltip += f"\n\nАналізований переклад:\n{seg['translated_text']}"
         badge = (
-            f"<span style='background:{badge_bg}; color:white; "
+            f"<span style='background:{badge_bg}; color:#fff; "
             f"padding:1px 6px; border-radius:3px; margin-right:6px; "
             f"font-size:0.74em; font-weight:600; vertical-align:middle; "
             f"white-space:nowrap;' "
-            f"title='Сегмент {i}: P(ШІ) = {prob:.3f}'>"
+            f"title='{html.escape(tooltip)}'>"
             f"{prob:.2f}</span>"
         )
         piece = (
-            f"<span style='background:{bg}; padding:2px 4px; margin:2px 1px; "
-            f"border-radius:3px; box-decoration-break:clone; "
+            f"<span style='background:{bg}; color:{text_color}; "
+            f"padding:2px 4px; margin:2px 1px; border-radius:3px; "
+            f"box-decoration-break:clone; "
             f"-webkit-box-decoration-break:clone;'>"
             f"{badge}{text_safe}</span>"
         )
@@ -310,6 +348,7 @@ def render_segment_highlights(segments, threshold):
 
     container = (
         "<div style='line-height:2.0; padding:14px 16px; background:#fcfcfc; "
+        f"color:{text_color}; "
         "border:1px solid #e5e5e5; border-radius:6px; font-size:0.95em;'>"
         + " ".join(pieces) +
         "</div>"
@@ -318,22 +357,41 @@ def render_segment_highlights(segments, threshold):
 
     # Зведення.
     n_total = len(segments)
-    st.caption(
+    summary = (
         f"Усього сегментів: **{n_total}**, "
         f"підозрілих (P ≥ {threshold:.2f}): **{n_suspicious}** "
         f"({n_suspicious / n_total * 100:.0f}%)."
     )
+    if has_translation:
+        summary += (
+            "  \nВиділення показано на тексті мовою оригіналу; "
+            "класифікація виконувалась над англійським перекладом "
+            "кожного сегмента (доступний у tooltip та деталях нижче)."
+        )
+    st.caption(summary)
 
     # Числові деталі — за бажанням, у згорнутому блоці.
     with st.expander("Показати числові деталі по сегментах"):
         for i, seg in enumerate(segments, 1):
             mark = "ШІ" if seg["ai_probability"] >= threshold else "Людина"
-            preview = seg["text"][:120] + ("..." if len(seg["text"]) > 120 else "")
+            preview = seg["text"][:160] + ("..." if len(seg["text"]) > 160 else "")
             st.markdown(
                 f"**[{i}]** `P(ШІ)={seg['ai_probability']:.3f}` — *{mark}*  \n"
-                f"<span style='color:#555; font-size:0.9em;'>{html.escape(preview)}</span>",
+                f"<span style='color:#777; font-size:0.9em;'>"
+                f"{html.escape(preview)}</span>",
                 unsafe_allow_html=True,
             )
+            if seg.get("translated_text"):
+                tr_preview = (
+                    seg["translated_text"][:160]
+                    + ("..." if len(seg["translated_text"]) > 160 else "")
+                )
+                st.markdown(
+                    f"<span style='color:#999; font-size:0.85em; "
+                    f"font-style:italic;'>↳ переклад: "
+                    f"{html.escape(tr_preview)}</span>",
+                    unsafe_allow_html=True,
+                )
 
 
 def _resolve_translate_flag(text, lang_mode):
@@ -452,27 +510,48 @@ def main():
             )
         else:
             translate_flag, detected = _resolve_translate_flag(text, lang_mode)
-            spinner_msg = "Виконується аналіз..."
+            detector, _ = load_detector()
+
+            # Прогрес-індикатор для перекладу довгих текстів.
+            progress_placeholder = st.empty()
+            status_placeholder = st.empty()
+
+            def _progress(stage, done, total):
+                if stage == "translate" and total > 1:
+                    progress_placeholder.progress(
+                        done / total,
+                        text=f"Переклад: {done}/{total} фрагментів",
+                    )
+
             if translate_flag:
-                spinner_msg = ("Перекладаю текст англійською та виконую "
-                               "аналіз... (для довгих текстів може зайняти "
-                               "до хвилини)")
-            with st.spinner(spinner_msg):
-                detector, _ = load_detector()
-                try:
-                    result = detector.analyze(
-                        text, threshold=threshold, translate=translate_flag
-                    )
-                except RuntimeError as e:
-                    # Найімовірніше — не встановлено deep-translator
-                    # або немає інтернету.
-                    st.error(
-                        f"Не вдалося виконати переклад: {e}\n\n"
-                        f"Спробуйте перемкнути режим мови на «Англійська» "
-                        f"в бічній панелі та проаналізувати оригінальний "
-                        f"текст без перекладу."
-                    )
-                    return
+                status_placeholder.info(
+                    "Перекладаю текст англійською та виконую аналіз. "
+                    "Для довгих текстів це може зайняти до хвилини."
+                )
+            else:
+                status_placeholder.info("Виконується аналіз...")
+
+            try:
+                result = detector.analyze(
+                    text, threshold=threshold, translate=translate_flag,
+                    progress_callback=_progress,
+                )
+            except Exception as e:
+                # `TranslationError` або інша помилка перекладу/мережі.
+                progress_placeholder.empty()
+                status_placeholder.empty()
+                err_name = type(e).__name__
+                st.error(
+                    f"Не вдалося виконати переклад ({err_name}): {e}\n\n"
+                    f"Спробуйте: 1) перевірити інтернет-з'єднання, "
+                    f"2) перемкнути режим мови на «Англійська» в бічній "
+                    f"панелі для аналізу оригіналу без перекладу, "
+                    f"3) розбити текст на менші частини."
+                )
+                return
+
+            progress_placeholder.empty()
+            status_placeholder.empty()
             render_results(result, threshold)
 
 

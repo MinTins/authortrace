@@ -10,8 +10,30 @@
 групи, що робить систему легкою та придатною до запуску на CPU.
 """
 
+import os
+
+# Гасимо інфо-повідомлення бекендів, які підтягуються транзитивно:
+# TF (через keras в `deep-translator`) виводить попередження oneDNN та
+# про застарілі API, а токенізатор HuggingFace попереджає при кожній
+# токенізації послідовності, довшої за контекст моделі (це штатна
+# ситуація — вище за стеком текст розбивається на фрагменти).
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
+os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")
+os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+
+import logging
+import warnings
+
+for _logger_name in ("tensorflow", "transformers", "absl"):
+    logging.getLogger(_logger_name).setLevel(logging.ERROR)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 import numpy as np
 import torch
+import transformers
+transformers.logging.set_verbosity_error()
 from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
 from .stylometric import extract_stylometric, STYLOMETRIC_NAMES, N_STYLOMETRIC

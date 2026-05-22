@@ -7,6 +7,21 @@
     python scripts/demo_cli.py --file ukrainian.txt --translate
 """
 
+# Заглушення інфо-повідомлень бекендів — має відбуватися ПЕРЕД імпортом
+# ML-бібліотек.
+import os as _os
+import warnings as _warnings
+for _name, _value in {
+    "TF_CPP_MIN_LOG_LEVEL": "3",
+    "TF_ENABLE_ONEDNN_OPTS": "0",
+    "TRANSFORMERS_VERBOSITY": "error",
+    "TOKENIZERS_PARALLELISM": "false",
+}.items():
+    _os.environ.setdefault(_name, _value)
+_warnings.filterwarnings("ignore", category=FutureWarning)
+_warnings.filterwarnings("ignore", category=DeprecationWarning)
+_warnings.filterwarnings("ignore", category=UserWarning)
+
 import argparse
 import os
 import sys
@@ -82,7 +97,11 @@ def main():
 
     print(f"  Вердикт:            {result['verdict']}")
     print(f"  Імовірність ШІ:     {result['ai_probability'] * 100:5.1f}%  "
-          f"[{_bar(result['ai_probability'])}]")
+          f"[{_bar(result['ai_probability'])}]   (фінальна, з агрегацією)")
+    if "global_ai_probability" in result:
+        gp = result["global_ai_probability"]
+        print(f"  Глобальна P(ШІ):    {gp * 100:5.1f}%  "
+              f"[{_bar(gp)}]   (один прогін на повному тексті)")
     print(f"  Впевненість моделі: {result['confidence'] * 100:5.1f}%")
     print("-" * 56)
     print("  Внесок груп ознак у вердикт:")
