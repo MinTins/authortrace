@@ -256,6 +256,19 @@ def render_results(result, threshold):
     render_segment_highlights(result["segments"], threshold)
 
 
+def _collapse_ws(text):
+    """
+    Стискає будь-яку послідовність пробільних символів (включно з
+    переносами рядків) у один пробіл. Потрібно скрізь, де текст
+    вставляється у HTML-атрибут або в єдиний інлайн-`<span>` — інакше
+    переноси рядків ламають markdown-парсер Streamlit, який сприймає
+    їх як кінець HTML-тегу.
+    """
+    if not text:
+        return ""
+    return " ".join(str(text).split())
+
+
 def _segment_palette(prob, threshold):
     """
     Повертає кольори для виділення сегмента залежно від його ймовірності.
@@ -323,18 +336,29 @@ def render_segment_highlights(segments, threshold):
         is_suspicious = prob >= threshold
         if is_suspicious:
             n_suspicious += 1
-        text_safe = html.escape(seg["text"])
-        # Tooltip — повна точність + (за наявності) англійський переклад,
-        # на якому реально працювала модель.
-        tooltip = f"Сегмент {i}: P(ШІ) = {prob:.3f}"
-        if seg.get("translated_text"):
-            tooltip += f"\n\nАналізований переклад:\n{seg['translated_text']}"
+        # Нормалізуємо пробіли в тексті: усі переноси/табуляції збираються
+        # в одинарні пробіли. Це важливо тому, що Streamlit-парсер
+        # переносить такі речі прямо в DOM, а пара \\n всередині тегу
+        # ламає його розбір (тег вважається закінченим, решта тіла
+        # витікає як сирий HTML-текст).
+        text_safe = html.escape(_collapse_ws(seg["text"]))
+
+        # Tooltip — обов'язково одинарний рядок (без \\n).
+        flat_translation = _collapse_ws(seg.get("translated_text") or "")
+        tooltip = f"[{i}] P(ШІ) = {prob:.3f}"
+        if flat_translation:
+            # Обмежуємо довжину, щоб не перевантажувати атрибут.
+            preview = flat_translation[:400]
+            if len(flat_translation) > 400:
+                preview += "…"
+            tooltip += f" — {preview}"
+
         badge = (
             f"<span style='background:{badge_bg}; color:#fff; "
             f"padding:1px 6px; border-radius:3px; margin-right:6px; "
             f"font-size:0.74em; font-weight:600; vertical-align:middle; "
             f"white-space:nowrap;' "
-            f"title='{html.escape(tooltip)}'>"
+            f'title="{html.escape(tooltip)}">'
             f"{prob:.2f}</span>"
         )
         piece = (
@@ -366,7 +390,7 @@ def render_segment_highlights(segments, threshold):
         summary += (
             "  \nВиділення показано на тексті мовою оригіналу; "
             "класифікація виконувалась над англійським перекладом "
-            "кожного сегмента (доступний у tooltip та деталях нижче)."
+            "кожного сегмента (доступний у деталях нижче)."
         )
     st.caption(summary)
 
@@ -374,7 +398,9 @@ def render_segment_highlights(segments, threshold):
     with st.expander("Показати числові деталі по сегментах"):
         for i, seg in enumerate(segments, 1):
             mark = "ШІ" if seg["ai_probability"] >= threshold else "Людина"
-            preview = seg["text"][:160] + ("..." if len(seg["text"]) > 160 else "")
+            preview = _collapse_ws(seg["text"])
+            if len(preview) > 160:
+                preview = preview[:160] + "..."
             st.markdown(
                 f"**[{i}]** `P(ШІ)={seg['ai_probability']:.3f}` — *{mark}*  \n"
                 f"<span style='color:#777; font-size:0.9em;'>"
@@ -382,14 +408,13 @@ def render_segment_highlights(segments, threshold):
                 unsafe_allow_html=True,
             )
             if seg.get("translated_text"):
-                tr_preview = (
-                    seg["translated_text"][:160]
-                    + ("..." if len(seg["translated_text"]) > 160 else "")
-                )
+                tr_preview = _collapse_ws(seg["translated_text"])
+                if len(tr_preview) > 160:
+                    tr_preview = tr_preview[:160] + "..."
                 st.markdown(
                     f"<span style='color:#999; font-size:0.85em; "
-                    f"font-style:italic;'>↳ переклад: "
-                    f"{html.escape(tr_preview)}</span>",
+                    f"font-style:italic;'>"
+                    f"[{i}] {html.escape(tr_preview)}</span>",
                     unsafe_allow_html=True,
                 )
 
