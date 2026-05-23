@@ -310,4 +310,32 @@ class AuthorTraceDetectorV2:
 
             base_result["segments"] = recalibrated
 
+            # Узгодження сегментів із загальним вердиктом. Сегменти
+            # калібруються поодинці, але на коротких фрагментах стилометричні
+            # сигнали слабші (правила вимагають мінімальної кількості слів).
+            # Коли загальний вердикт — штучний текст, зсуваємо логіти
+            # сегментів так, щоб їх середня дорівнювала фінальній каліброваній
+            # ймовірності — це зберігає відносні відмінності між сегментами
+            # (видно, які підозріліші), але масштаб шкали відповідає
+            # загальній оцінці. Для людських текстів зсуву не робимо, щоб не
+            # створювати хибних «гарячих» фрагментів.
+            if recalibrated and calibrated_p >= threshold:
+                import math
+                def _logit(p):
+                    p = min(max(p, 1e-6), 1 - 1e-6)
+                    return math.log(p / (1 - p))
+                def _sigmoid(z):
+                    if z > 50: return 1.0
+                    if z < -50: return 0.0
+                    return 1.0 / (1.0 + math.exp(-z))
+                target_logit = _logit(calibrated_p)
+                cur_mean_logit = sum(
+                    _logit(s["ai_probability"]) for s in recalibrated
+                ) / len(recalibrated)
+                shift = target_logit - cur_mean_logit
+                for s in recalibrated:
+                    s["ai_probability"] = _sigmoid(
+                        _logit(s["ai_probability"]) + shift
+                    )
+
         return base_result
