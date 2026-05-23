@@ -179,7 +179,8 @@ def calibrate(raw_p, extended_features, *, source_lang="en", n_words=200):
     # нижче 0.50. Це fix для випадку, коли raw_p надзвичайно низький (1e-4)
     # і логіт-зсув недостатній.
     n_llm_rules = sum(1 for r in rules_fired if r.startswith("+"))
-    if llm_score >= 0.25 and n_llm_rules >= 4 and human_score < 0.05:
+    if (llm_score >= 0.25 and n_llm_rules >= 4
+            and human_score < 0.05 and raw_p >= 0.05):
         calibrated_p = max(calibrated_p, 0.55)
         rules_fired.append("@strong_llm_floor")
 
