@@ -22,7 +22,7 @@ import numpy as np
 import torch
 
 from .features import FeatureExtractor
-from .features.stylometric import N_STYLOMETRIC
+from .features.stylometric import N_STYLOMETRIC_BASE as N_STYLOMETRIC
 from .features.perplexity import N_PERPLEXITY
 from .model import FusionMLP, StandardScaler
 from .explain import (

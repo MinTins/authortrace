@@ -15,7 +15,7 @@ import yaml
 from sklearn.linear_model import LogisticRegression
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.features.stylometric import N_STYLOMETRIC, STYLOMETRIC_NAMES
+from src.features.stylometric import N_STYLOMETRIC_BASE as N_STYLOMETRIC, STYLOMETRIC_NAMES
 from src.features.perplexity import N_PERPLEXITY, PERPLEXITY_NAMES
 from src.model import StandardScaler
 from src.train import train_model, _apply_mask

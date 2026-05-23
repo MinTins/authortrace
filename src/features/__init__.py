@@ -8,6 +8,12 @@
 
 Одна мовна модель (distilgpt2) обслуговує і перплексійну, і семантичну
 групи, що робить систему легкою та придатною до запуску на CPU.
+
+Зверніть увагу: `extract` повертає вектор фіксованої розмірності, який
+подається у фузійну нейромережу. Розширений набір стилометричних ознак
+(використовується калібратором пост-обробки) вилучається окремим
+методом `extract_extended_stylometric`, що не змінює формат вхідного
+вектора нейромережі.
 """
 
 import os
@@ -36,7 +42,14 @@ import transformers
 transformers.logging.set_verbosity_error()
 from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
-from .stylometric import extract_stylometric, STYLOMETRIC_NAMES, N_STYLOMETRIC
+from .stylometric import (
+    extract_stylometric,
+    STYLOMETRIC_NAMES,
+    EXTENDED_STYLOMETRIC_NAMES,
+    N_STYLOMETRIC,
+    N_STYLOMETRIC_BASE,
+    N_STYLOMETRIC_EXTENDED,
+)
 from .perplexity import PerplexityExtractor, PERPLEXITY_NAMES, N_PERPLEXITY
 
 
@@ -55,26 +68,55 @@ class FeatureExtractor:
             max_tokens=max_tokens, window_size=window_size, top_k=top_k,
         )
 
-        # Межі підвекторів у спільному векторі фузії.
+        # Межі підвекторів у спільному векторі фузії. Фузійна нейромережа
+        # приймає лише БАЗОВУ підгрупу стилометричних ознак; розширений
+        # набір використовується калібратором пост-обробки окремо.
         self.bounds = {
-            "stylometric": (0, N_STYLOMETRIC),
-            "perplexity": (N_STYLOMETRIC, N_STYLOMETRIC + N_PERPLEXITY),
-            "semantic": (N_STYLOMETRIC + N_PERPLEXITY,
-                         N_STYLOMETRIC + N_PERPLEXITY + self.semantic_dim),
+            "stylometric": (0, N_STYLOMETRIC_BASE),
+            "perplexity": (
+                N_STYLOMETRIC_BASE,
+                N_STYLOMETRIC_BASE + N_PERPLEXITY,
+            ),
+            "semantic": (
+                N_STYLOMETRIC_BASE + N_PERPLEXITY,
+                N_STYLOMETRIC_BASE + N_PERPLEXITY + self.semantic_dim,
+            ),
         }
-        self.total_dim = N_STYLOMETRIC + N_PERPLEXITY + self.semantic_dim
+        self.total_dim = (
+            N_STYLOMETRIC_BASE + N_PERPLEXITY + self.semantic_dim
+        )
 
     def feature_names(self):
-        """Назви всіх ознак (семантичні — узагальнено)."""
-        names = list(STYLOMETRIC_NAMES) + list(PERPLEXITY_NAMES)
+        """Назви ознак, що подаються до фузійної мережі."""
+        base_names = STYLOMETRIC_NAMES[:N_STYLOMETRIC_BASE]
+        names = list(base_names) + list(PERPLEXITY_NAMES)
         names += [f"sem_{i}" for i in range(self.semantic_dim)]
         return names
 
     def extract(self, text):
-        """Повертає об'єднаний numpy-вектор ознак для одного тексту."""
-        styl = extract_stylometric(text)
+        """Об'єднаний вектор ознак для одного тексту (вхід фузійної мережі).
+
+        Повертає `total_dim` значень: базова стилометрія (15) + перплексія
+        (8) + семантика (~768). Розширені стилометричні ознаки (15..24)
+        тут НЕ включаються — вони вилучаються окремо для калібратора.
+        """
+        styl_full = extract_stylometric(text)
+        styl_base = styl_full[:N_STYLOMETRIC_BASE]
         ppl, semantic = self.ppl.extract(text, return_hidden=True)
-        return np.concatenate([styl, ppl, semantic]).astype(np.float32)
+        return np.concatenate(
+            [styl_base, ppl, semantic]
+        ).astype(np.float32)
+
+    def extract_extended_stylometric(self, text):
+        """Розширений стилометричний підвектор (вхід калібратора).
+
+        Повертає `N_STYLOMETRIC_EXTENDED` значень у порядку
+        `EXTENDED_STYLOMETRIC_NAMES`. Ці ознаки обчислюються над
+        ОРИГІНАЛОМ тексту, без машинного перекладу, що зберігає
+        авторську стилістику.
+        """
+        styl_full = extract_stylometric(text)
+        return styl_full[N_STYLOMETRIC_BASE:].astype(np.float32)
 
     def extract_batch(self, texts, verbose=True):
         """Вилучає ознаки для списку текстів; повертає матрицю (N, total_dim)."""

@@ -44,7 +44,7 @@ import yaml
 import streamlit as st
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.detector import AuthorTraceDetector
+from src.detector_v2 import AuthorTraceDetectorV2 as AuthorTraceDetector
 from src.translate import detect_language
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -64,14 +64,19 @@ LANG_NAMES = {"uk": "українська", "en": "англійська"}
 @st.cache_resource
 def load_detector():
     cfg = yaml.safe_load(open(os.path.join(ROOT, "config.yaml"), encoding="utf-8"))
+    # За замовчуванням активний rule-based калібратор (стабільний, не залежить
+    # від наявності файлу логістичного калібратора).
+    cal_path = os.path.join(ROOT, "results", "calibrator.json")
     return AuthorTraceDetector(
         model_path=os.path.join(ROOT, cfg["paths"]["model"]),
         scaler_path=os.path.join(ROOT, cfg["paths"]["scaler"]),
+        calibrator_path=cal_path if os.path.exists(cal_path) else None,
         lm_name=cfg["language_model"]["name"],
         max_tokens=cfg["language_model"]["max_tokens"],
         window_size=cfg["language_model"]["window_size"],
         top_k=cfg["language_model"]["top_k"],
         mcfg=cfg["model"],
+        calibrator_mode="rules",
     ), cfg
 
 
@@ -558,7 +563,8 @@ def main():
 
             try:
                 result = detector.analyze(
-                    text, threshold=threshold, translate=translate_flag,
+                    text, threshold=threshold,
+                    auto_translate=translate_flag,
                     progress_callback=_progress,
                 )
             except Exception as e:

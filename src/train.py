@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from .features.stylometric import N_STYLOMETRIC
+from .features.stylometric import N_STYLOMETRIC_BASE as N_STYLOMETRIC
 from .features.perplexity import N_PERPLEXITY
 from .model import FusionMLP
 

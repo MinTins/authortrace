@@ -1,0 +1,559 @@
+{
+  "calibration_set_size": 61,
+  "n_human": 37,
+  "n_ai": 24,
+  "training_accuracy": 0.9836065573770492,
+  "raw_vs_calibrated": [
+    {
+      "idx": 0,
+      "label": 0,
+      "raw_p": 0.9988553524017334,
+      "calibrated_p": 0.5051142936967835,
+      "raw_correct": 0,
+      "calibrated_correct": 0,
+      "preview": "Інформаційна система реалізується на основі клієнт-серверної архітектури, яка пе"
+    },
+    {
+      "idx": 1,
+      "label": 0,
+      "raw_p": 0.0006838197004981339,
+      "calibrated_p": 0.03421415255565841,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Метод скінченних елементів є одним з найбільш поширених чисельних методів розв'я"
+    },
+    {
+      "idx": 2,
+      "label": 0,
+      "raw_p": 0.5175843834877014,
+      "calibrated_p": 0.013784397311974377,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Дослідження виконано на матеріалі сорока корпоративних звітів за 2018–2022 роки."
+    },
+    {
+      "idx": 3,
+      "label": 0,
+      "raw_p": 0.0014951768098399043,
+      "calibrated_p": 0.008505404097094703,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Електрохімічна імпедансна спектроскопія (EIS) — потужний метод дослідження власт"
+    },
+    {
+      "idx": 4,
+      "label": 0,
+      "raw_p": 0.0006088452064432204,
+      "calibrated_p": 0.02494444381319925,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Питання правового регулювання штучного інтелекту в Європейському Союзі набуло ос"
+    },
+    {
+      "idx": 5,
+      "label": 0,
+      "raw_p": 0.9952564835548401,
+      "calibrated_p": 0.41354937459269203,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Археологічні розкопки в околицях Києва, проведені експедицією у 2019 році, дали "
+    },
+    {
+      "idx": 6,
+      "label": 0,
+      "raw_p": 0.004729538690298796,
+      "calibrated_p": 0.1624169516341749,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Хвороба Альцгеймера лишається однією з нерозв'язаних медичних проблем. Основна г"
+    },
+    {
+      "idx": 7,
+      "label": 0,
+      "raw_p": 0.0023555343504995108,
+      "calibrated_p": 0.060659240254341946,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Аналіз показників економічного зростання країн Південно-Східної Азії у період 20"
+    },
+    {
+      "idx": 8,
+      "label": 0,
+      "raw_p": 0.00026393344160169363,
+      "calibrated_p": 0.06533860575905946,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Питання про природу свідомості залишається відкритим у філософії розуму. Картезі"
+    },
+    {
+      "idx": 9,
+      "label": 0,
+      "raw_p": 0.0024543737526983023,
+      "calibrated_p": 0.01596892890420546,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Методика навчання іноземних мов зазнала суттєвих змін за останні два десятиліття"
+    },
+    {
+      "idx": 10,
+      "label": 0,
+      "raw_p": 5.263690763968043e-05,
+      "calibrated_p": 0.05316562654246878,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Виявлення фальсифікації цифрових зображень — задача, важливість якої зросла з ро"
+    },
+    {
+      "idx": 11,
+      "label": 0,
+      "raw_p": 0.0031291875056922436,
+      "calibrated_p": 0.11519817492402655,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Музеї сучасного мистецтва в Україні переживають важливий етап інституційного ста"
+    },
+    {
+      "idx": 12,
+      "label": 0,
+      "raw_p": 9.999997701015673e-07,
+      "calibrated_p": 0.003771992573664756,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Алгоритм Сімплекс-методу, запропонований Данцигом 1947 року, протягом десятиліть"
+    },
+    {
+      "idx": 13,
+      "label": 0,
+      "raw_p": 0.4412173628807068,
+      "calibrated_p": 0.03260448611262611,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Класифікація лишайників — одна з найскладніших задач сучасної ботаніки. На відмі"
+    },
+    {
+      "idx": 14,
+      "label": 0,
+      "raw_p": 0.04555276408791542,
+      "calibrated_p": 0.030150364298550964,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Феномен «вигорання» (burnout) серед медичних працівників набув особливо тривожни"
+    },
+    {
+      "idx": 15,
+      "label": 0,
+      "raw_p": 0.9904429316520691,
+      "calibrated_p": 0.03502453889779797,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Технологія блокчейн часто подається в популярних джерелах як засіб «децентраліза"
+    },
+    {
+      "idx": 16,
+      "label": 0,
+      "raw_p": 9.999997701015673e-07,
+      "calibrated_p": 0.17367041662194124,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "The persistence of social inequality in post-industrial economies has proven res"
+    },
+    {
+      "idx": 17,
+      "label": 0,
+      "raw_p": 3.0449449695879593e-05,
+      "calibrated_p": 0.06503032997140924,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Crystallographic analysis of the recovered sample revealed an unexpected phase c"
+    },
+    {
+      "idx": 18,
+      "label": 0,
+      "raw_p": 0.0007996286149136722,
+      "calibrated_p": 0.11512158712999232,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "The historical record of monastic communities in early medieval Ireland is prese"
+    },
+    {
+      "idx": 19,
+      "label": 0,
+      "raw_p": 0.9904639720916748,
+      "calibrated_p": 0.32261755193930525,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Mosquito-borne diseases pose increasing challenges to public health in temperate"
+    },
+    {
+      "idx": 20,
+      "label": 0,
+      "raw_p": 0.001066237105987966,
+      "calibrated_p": 0.06246353073725048,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Quantum error correction remains the fundamental obstacle to practical quantum c"
+    },
+    {
+      "idx": 21,
+      "label": 0,
+      "raw_p": 0.0009917906718328595,
+      "calibrated_p": 0.06353716004321693,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Linguistic borrowing in Modern Ukrainian has followed a complex trajectory shape"
+    },
+    {
+      "idx": 22,
+      "label": 0,
+      "raw_p": 0.03758113458752632,
+      "calibrated_p": 0.2730550188340382,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "The recovery of damaged paintings using non-invasive techniques has progressed s"
+    },
+    {
+      "idx": 23,
+      "label": 0,
+      "raw_p": 0.001491389935836196,
+      "calibrated_p": 0.004233250730083162,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Field observations of corvid behaviour in urban environments have raised interes"
+    },
+    {
+      "idx": 24,
+      "label": 0,
+      "raw_p": 0.9916349649429321,
+      "calibrated_p": 0.01390127138795174,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Розробка нашого внутрішнього інструменту моніторингу зайняла більше часу, ніж пл"
+    },
+    {
+      "idx": 25,
+      "label": 0,
+      "raw_p": 0.7978087663650513,
+      "calibrated_p": 0.255331980104657,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Питання вибору архітектури — мікросервіси чи моноліт — у нашому проєкті вирішува"
+    },
+    {
+      "idx": 26,
+      "label": 0,
+      "raw_p": 0.07307595014572144,
+      "calibrated_p": 0.26653665253837866,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Кешування в нашому застосунку реалізовано доволі примітивно — на рівні Redis з п"
+    },
+    {
+      "idx": 27,
+      "label": 0,
+      "raw_p": 0.0006108286324888468,
+      "calibrated_p": 0.010959833238030516,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Працюючи з квантовими алгоритмами в академічному середовищі, я постійно стикаюсь"
+    },
+    {
+      "idx": 28,
+      "label": 0,
+      "raw_p": 0.9509583711624146,
+      "calibrated_p": 0.014369169678718024,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "В моїй практиці база даних PostgreSQL виявилась найнадійнішим вибором для більшо"
+    },
+    {
+      "idx": 29,
+      "label": 0,
+      "raw_p": 0.9826990365982056,
+      "calibrated_p": 0.11320938010053776,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Інтерфейс нашого мобільного додатку перероблявся тричі за два роки. Перший дизай"
+    },
+    {
+      "idx": 30,
+      "label": 0,
+      "raw_p": 0.5150381326675415,
+      "calibrated_p": 0.06246301880322942,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Безпека наших корпоративних систем будувалася поетапно й часто реактивно. Перший"
+    },
+    {
+      "idx": 31,
+      "label": 0,
+      "raw_p": 0.0010804164921864867,
+      "calibrated_p": 0.05869833342667386,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Машинне навчання в реальному виробництві відрізняється від академічних статей у "
+    },
+    {
+      "idx": 32,
+      "label": 0,
+      "raw_p": 0.8562486171722412,
+      "calibrated_p": 0.045732167240806136,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "We tried migrating to microservices about three years ago. The pitch was compell"
+    },
+    {
+      "idx": 33,
+      "label": 0,
+      "raw_p": 0.6056461930274963,
+      "calibrated_p": 0.01942897479536525,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Our Prometheus setup grew organically over five years. By the end, we had alert "
+    },
+    {
+      "idx": 34,
+      "label": 0,
+      "raw_p": 0.70393967628479,
+      "calibrated_p": 0.10688124405286538,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Switching from MongoDB to PostgreSQL on our main product was probably the most p"
+    },
+    {
+      "idx": 35,
+      "label": 0,
+      "raw_p": 0.1553846001625061,
+      "calibrated_p": 0.008043060740696086,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "My team spent eight weeks on what was supposed to be a quick refactor of the aut"
+    },
+    {
+      "idx": 36,
+      "label": 0,
+      "raw_p": 5.555447569349781e-05,
+      "calibrated_p": 0.026217725367953366,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Working on the database team at a large fintech taught me how much of distribute"
+    },
+    {
+      "idx": 37,
+      "label": 1,
+      "raw_p": 0.9789078831672668,
+      "calibrated_p": 0.9598746035054081,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Архітектура мікросервісів забезпечує гнучкість, масштабованість і простоту супро"
+    },
+    {
+      "idx": 38,
+      "label": 1,
+      "raw_p": 0.0005323944496922195,
+      "calibrated_p": 0.6876331882379585,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Підбір алгоритму машинного навчання для конкретної задачі залежить від кількох к"
+    },
+    {
+      "idx": 39,
+      "label": 1,
+      "raw_p": 0.9807533621788025,
+      "calibrated_p": 0.9105535022026382,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Сучасні системи кешування побудовані на трьох фундаментальних принципах — локаль"
+    },
+    {
+      "idx": 40,
+      "label": 1,
+      "raw_p": 0.03764442726969719,
+      "calibrated_p": 0.829561658153215,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Цифрова трансформація освіти охоплює три взаємопов'язані напрями — інфраструктур"
+    },
+    {
+      "idx": 41,
+      "label": 1,
+      "raw_p": 0.8695997595787048,
+      "calibrated_p": 0.8323970050607672,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Принцип роботи блокчейну ґрунтується на трьох ключових концепціях — криптографіч"
+    },
+    {
+      "idx": 42,
+      "label": 1,
+      "raw_p": 0.3831106722354889,
+      "calibrated_p": 0.9748252145412661,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Підходи до забезпечення кібербезпеки сучасних організацій можна умовно розділити"
+    },
+    {
+      "idx": 43,
+      "label": 1,
+      "raw_p": 0.9999936819076538,
+      "calibrated_p": 0.9823493437260163,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Контейнеризація змінила підхід до розгортання програмного забезпечення завдяки т"
+    },
+    {
+      "idx": 44,
+      "label": 1,
+      "raw_p": 0.0487186498939991,
+      "calibrated_p": 0.9978660335745307,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Аналіз ефективності маркетингових кампаній зазвичай ґрунтується на трьох групах "
+    },
+    {
+      "idx": 45,
+      "label": 1,
+      "raw_p": 0.19005189836025238,
+      "calibrated_p": 0.9969237556262923,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Технології обробки природної мови розвиваються переважно у трьох напрямах — розп"
+    },
+    {
+      "idx": 46,
+      "label": 1,
+      "raw_p": 0.9660133719444275,
+      "calibrated_p": 0.6267333953879545,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Дослідження поведінки споживачів у цифровому середовищі ґрунтується на трьох осн"
+    },
+    {
+      "idx": 47,
+      "label": 1,
+      "raw_p": 0.7504793405532837,
+      "calibrated_p": 0.675529996088033,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "The transition to cloud-native architectures rests on three interrelated princip"
+    },
+    {
+      "idx": 48,
+      "label": 1,
+      "raw_p": 0.9962875843048096,
+      "calibrated_p": 0.9274098060382928,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Effective product management requires balancing three competing pressures — cust"
+    },
+    {
+      "idx": 49,
+      "label": 1,
+      "raw_p": 9.542128827888519e-05,
+      "calibrated_p": 0.8763700037012192,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "The design of effective recommendation systems involves three core challenges — "
+    },
+    {
+      "idx": 50,
+      "label": 1,
+      "raw_p": 0.6858976483345032,
+      "calibrated_p": 0.8162490428157738,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Organizational change management succeeds when three conditions align — clear vi"
+    },
+    {
+      "idx": 51,
+      "label": 1,
+      "raw_p": 0.08267493546009064,
+      "calibrated_p": 0.8757806126641613,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "The architecture of a robust distributed system addresses three foundational con"
+    },
+    {
+      "idx": 52,
+      "label": 1,
+      "raw_p": 0.731586754322052,
+      "calibrated_p": 0.9968099324410653,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "The maturity of a software engineering organization is typically reflected in th"
+    },
+    {
+      "idx": 53,
+      "label": 1,
+      "raw_p": 0.9524573683738708,
+      "calibrated_p": 0.9537077657591269,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Successful machine learning deployments share three common characteristics — rob"
+    },
+    {
+      "idx": 54,
+      "label": 1,
+      "raw_p": 0.995665967464447,
+      "calibrated_p": 0.5460554210106825,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Сучасний ринок CRM-систем представлений кількома основними рішеннями. Salesforce"
+    },
+    {
+      "idx": 55,
+      "label": 1,
+      "raw_p": 0.9704022407531738,
+      "calibrated_p": 0.6323734859000938,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Аналіз сучасних фреймворків для розробки веб-застосунків виявляє чітку диференці"
+    },
+    {
+      "idx": 56,
+      "label": 1,
+      "raw_p": 0.700106143951416,
+      "calibrated_p": 0.695777588171076,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Cucumber-тести у поєднанні з Selenium залишаються поширеним вибором для функціон"
+    },
+    {
+      "idx": 57,
+      "label": 1,
+      "raw_p": 0.7524234652519226,
+      "calibrated_p": 0.8924162335931661,
+      "raw_correct": 1,
+      "calibrated_correct": 1,
+      "preview": "Контейнерні оркестратори представлені трьома основними категоріями рішень — повн"
+    },
+    {
+      "idx": 58,
+      "label": 1,
+      "raw_p": 0.2830265164375305,
+      "calibrated_p": 0.7406568477215261,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "Ринок інструментів управління проєктами насичений рішеннями різної зрілості та о"
+    },
+    {
+      "idx": 59,
+      "label": 1,
+      "raw_p": 0.09764043241739273,
+      "calibrated_p": 0.9534911750368769,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "The contemporary landscape of monitoring and observability tools presents distin"
+    },
+    {
+      "idx": 60,
+      "label": 1,
+      "raw_p": 0.01372763141989708,
+      "calibrated_p": 0.9627408647351942,
+      "raw_correct": 0,
+      "calibrated_correct": 1,
+      "preview": "The evaluation of message-queue systems for production deployment involves balan"
+    }
+  ],
+  "raw_accuracy": 0.6229508196721312,
+  "calibrated_accuracy": 0.9836065573770492
+}
