@@ -89,7 +89,10 @@ def load_examples():
 def load_metrics():
     path = os.path.join(ROOT, "results", "metrics.json")
     if os.path.exists(path):
-        return json.load(open(path, encoding="utf-8"))
+        try:
+            return json.load(open(path, encoding="utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return None
     return None
 
 
